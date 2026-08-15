@@ -54,4 +54,21 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Fine-tuning and the ablation study run on Colab (GPU); baseline scoring and the analysis notebook run locally.
+## Reproducing the results
+
+The pipeline runs in five stages. Each stage's output is already checked into `data/`, so any stage can be reproduced independently as long as its inputs are present.
+
+1. **Label the eval set.** `tools/label_tool.html` is a standalone browser tool used to hand-label `data/eval_pairs_blind.csv` against the heuristic labels, producing `data/labeled_eval_fixed.csv`.
+
+2. **Fine-tune the cross-encoder.** `notebooks/fitrank_finetune_colab.ipynb` fine-tunes `cross-encoder/ms-marco-MiniLM-L-6-v2` on `data/train_pairs.csv` (GPU runtime required). Saves weights to `models/fitrank-cross-encoder/`.
+
+3. **Score the baselines.**
+   - `scripts/compare_models.py` scores the pretrained and fine-tuned cross-encoder against `data/labeled_eval_fixed.csv`, producing `data/eval_scored_comparison.csv`.
+   - `bi_encoder_baseline.py` scores the pretrained bi-encoder baseline, producing `data/bi_encoder_scores.csv`.
+   - TF-IDF is computed inline inside the analysis notebook (stage 5); it needs no separate script.
+
+4. **Run the ablation.** `notebooks/fitrank_ablation_colab.ipynb` repeats fine-tuning on training subsets of 500/1,000/2,000/4,000 pairs (GPU runtime required) and evaluates each against the same eval set, producing `data/ablation_results.csv`.
+
+5. **Generate the analysis.** `notebooks/fitrank_analysis.ipynb` consumes all of the above CSVs and produces the full EDA, 4-tier baseline comparison, bootstrap confidence intervals, error analysis, and ablation charts.
+
+Fine-tuning and the ablation study need a GPU (Colab); everything else runs locally on CPU.
